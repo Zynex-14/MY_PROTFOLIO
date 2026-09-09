@@ -33,15 +33,18 @@ export const portfolioService = {
     try {
       const res = await fetch('/api/health');
       if (res.ok) {
-        const data = await res.json();
-        return {
-          success: data.status === 'connected',
-          database: data.database || 'portfolio_db',
-          host: data.host || 'cluster0.5rcip6z.mongodb.net',
-          message: data.status === 'connected'
-            ? `Connected to MongoDB Atlas (${data.host || 'Cluster0'}) database "${data.database}"!`
-            : 'Connecting to MongoDB Atlas...'
-        };
+        const ct = res.headers.get('content-type') || '';
+        if (ct.includes('application/json')) {
+          const data = await res.json();
+          return {
+            success: data.status === 'connected',
+            database: data.database || 'portfolio_db',
+            host: data.host || 'cluster0.5rcip6z.mongodb.net',
+            message: data.status === 'connected'
+              ? `Connected to MongoDB Atlas (${data.host || 'Cluster0'}) database "${data.database}"!`
+              : 'Connecting to MongoDB Atlas...'
+          };
+        }
       }
       throw new Error(`Server returned status ${res.status}`);
     } catch (err) {
@@ -69,10 +72,13 @@ export const portfolioService = {
     try {
       const res = await fetch('/api/portfolio');
       if (res.ok) {
-        const data = await res.json();
-        if (data && data.profile) {
-          saveLocalData(data);
-          return data;
+        const ct = res.headers.get('content-type') || '';
+        if (ct.includes('application/json')) {
+          const data = await res.json();
+          if (data && data.profile) {
+            saveLocalData(data);
+            return data;
+          }
         }
       }
     } catch (err) {
@@ -424,11 +430,21 @@ export const portfolioService = {
       body: JSON.stringify(current)
     });
 
+    const ct = res.headers.get('content-type') || '';
     if (!res.ok) {
-      const errData = await res.json();
-      throw new Error(errData.error || 'Failed to seed data to MongoDB Atlas');
+      let msg = `Server returned status ${res.status}`;
+      if (ct.includes('application/json')) {
+        try {
+          const errData = await res.json();
+          msg = errData.error || msg;
+        } catch (e) {}
+      }
+      throw new Error(msg);
     }
 
-    return await res.json();
+    if (ct.includes('application/json')) {
+      return await res.json();
+    }
+    return { success: true };
   }
 };

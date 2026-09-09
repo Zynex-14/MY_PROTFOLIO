@@ -1,6 +1,11 @@
 import dns from 'node:dns';
-// Ensure public DNS resolvers for MongoDB Atlas SRV lookup on Windows
-dns.setServers(['8.8.8.8', '1.1.1.1']);
+// Only use custom public DNS resolvers on Windows local development
+// Cloud/serverless environments (Vercel, AWS Lambda, Linux) must use system host DNS
+if (process.platform === 'win32') {
+  try {
+    dns.setServers(['8.8.8.8', '1.1.1.1']);
+  } catch (e) {}
+}
 
 import express from 'express';
 import cors from 'cors';
@@ -22,6 +27,18 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://shadowfighterzaid1
 app.use(cors());
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
+
+// Ensure MongoDB connection for incoming API requests
+app.use(async (req, res, next) => {
+  if (req.url.startsWith('/api') || req.path.startsWith('/api')) {
+    try {
+      await connectDB();
+    } catch (e) {
+      console.error('Database connection middleware error:', e.message);
+    }
+  }
+  next();
+});
 
 // Mongoose Schemas & Models
 const ProfileSchema = new mongoose.Schema({
@@ -384,19 +401,30 @@ app.post('/api/portfolio/seed', async (req, res) => {
   }
 });
 
-// Serve static files in production (Render, Docker, or unified hosting)
-const distPath = path.join(__dirname, 'dist');
-app.use(express.static(distPath));
-
-// Catch-all route for Single Page Application (SPA) routing
-app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api')) {
-    return next();
-  }
-  res.sendFile(path.join(distPath, 'index.html'), (err) => {
-    if (err) next();
+// Direct API root endpoint
+app.get(['/api', '/api/'], (req, res) => {
+  res.json({
+    status: 'online',
+    message: 'Portfolio MongoDB API running on Vercel Serverless',
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'connecting'
   });
 });
+
+// Serve static files in production (Render, Docker, or unified hosting)
+if (!process.env.VERCEL) {
+  const distPath = path.join(__dirname, 'dist');
+  app.use(express.static(distPath));
+
+  // Catch-all route for Single Page Application (SPA) routing
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      return next();
+    }
+    res.sendFile(path.join(distPath, 'index.html'), (err) => {
+      if (err) next();
+    });
+  });
+}
 
 // Database connection helper for standalone and serverless runtimes
 let isConnected = false;
@@ -404,10 +432,13 @@ export async function connectDB() {
   if (mongoose.connection.readyState >= 1) {
     return;
   }
-  await mongoose.connect(MONGODB_URI, { serverSelectionTimeoutMS: 8000 });
+  await mongoose.connect(MONGODB_URI, { 
+    serverSelectionTimeoutMS: 5000,
+    connectTimeoutMS: 5000 
+  });
   if (!isConnected) {
     isConnected = true;
-    await autoSeedIfEmpty();
+    autoSeedIfEmpty().catch(err => console.error('Seed error:', err.message));
   }
 }
 
