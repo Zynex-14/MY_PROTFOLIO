@@ -346,26 +346,41 @@ export const ResumeModal = ({ isOpen, onClose, data }) => {
                     Education & Academics
                   </h2>
                   <div className="space-y-1.5">
-                    {(education || []).map((edu) => (
-                      <div key={edu.id} className="text-[10px]">
-                        <div className="flex items-baseline justify-between">
-                          <span className="font-bold text-slate-900">
-                            {edu.degree}
-                          </span>
-                          <span className="text-[9.5px] text-slate-500 font-semibold">
-                            {edu.year}
-                          </span>
-                        </div>
-                        <p className="text-[9.5px] text-slate-700">
-                          {edu.institution} {edu.department ? `— ${edu.department}` : ''}
-                        </p>
-                        {edu.achievements && (
-                          <p className="text-[9px] text-slate-600 italic">
-                            Honors: {edu.achievements}
+                    {(education || []).map((edu) => {
+                      const isSchool =
+                        edu.educationType === 'school' ||
+                        Boolean(edu.standard) ||
+                        Boolean(edu.board) ||
+                        (edu.degree && /10th|12th|class 10|class 11|class 12|school|matric|cbse|state board|icse|sslc|hsc/i.test(edu.degree));
+                      const title = isSchool
+                        ? edu.standard
+                          ? `${edu.standard} (${edu.board || 'School'})`
+                          : edu.degree || 'School Education'
+                        : edu.degree;
+                      const score = isSchool ? (edu.percentage || edu.score) : (edu.cgpa || edu.score);
+
+                      return (
+                        <div key={edu.id} className="text-[10px]">
+                          <div className="flex items-baseline justify-between">
+                            <span className="font-bold text-slate-900">
+                              {title}
+                            </span>
+                            <span className="text-[9.5px] text-slate-500 font-semibold">
+                              {edu.year}
+                            </span>
+                          </div>
+                          <p className="text-[9.5px] text-slate-700">
+                            {edu.institution} {edu.department ? `— ${edu.department}` : edu.board ? `— ${edu.board}` : ''}
+                            {score ? ` | ${isSchool ? 'Marks' : 'CGPA'}: ${score}` : ''}
                           </p>
-                        )}
-                      </div>
-                    ))}
+                          {edu.achievements && (
+                            <p className="text-[9px] text-slate-600 italic">
+                              Honors: {edu.achievements}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -551,18 +566,35 @@ export const ResumeModal = ({ isOpen, onClose, data }) => {
                       Education & Academic Background
                     </h2>
                     <div className="space-y-3">
-                      {(education || []).map((edu) => (
-                        <div key={edu.id} className="text-xs">
-                          <div className="flex items-baseline justify-between font-bold text-slate-900">
-                            <span>{edu.degree}</span>
-                            <span className="text-[11px] text-slate-500 font-normal">{edu.year}</span>
+                      {(education || []).map((edu) => {
+                        const isSchool =
+                          edu.educationType === 'school' ||
+                          Boolean(edu.standard) ||
+                          Boolean(edu.board) ||
+                          (edu.degree && /10th|12th|class 10|class 11|class 12|school|matric|cbse|state board|icse|sslc|hsc/i.test(edu.degree));
+                        const title = isSchool
+                          ? edu.standard
+                            ? `${edu.standard} (${edu.board || 'School'})`
+                            : edu.degree || 'School Education'
+                          : edu.degree;
+                        const score = isSchool ? (edu.percentage || edu.score) : (edu.cgpa || edu.score);
+
+                        return (
+                          <div key={edu.id} className="text-xs">
+                            <div className="flex items-baseline justify-between font-bold text-slate-900">
+                              <span>{title}</span>
+                              <span className="text-[11px] text-slate-500 font-normal">{edu.year}</span>
+                            </div>
+                            <p className="text-[11px] text-slate-700">
+                              {edu.institution} {edu.department ? `• ${edu.department}` : edu.board ? `• ${edu.board}` : ''}
+                              {score ? ` | ${isSchool ? 'Marks' : 'CGPA'}: ${score}` : ''}
+                            </p>
+                            {edu.achievements && (
+                              <p className="text-[10.5px] text-slate-600 mt-0.5 italic">Honors: {edu.achievements}</p>
+                            )}
                           </div>
-                          <p className="text-[11px] text-slate-700">{edu.institution} &bull; {edu.department}</p>
-                          {edu.achievements && (
-                            <p className="text-[10.5px] text-slate-600 mt-0.5 italic">Honors: {edu.achievements}</p>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}

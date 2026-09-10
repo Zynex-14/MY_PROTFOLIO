@@ -34,7 +34,8 @@ import {
   FileText,
   KeyRound,
   ShieldCheck,
-  Download
+  Download,
+  School
 } from 'lucide-react';
 
 export const AdminDashboard = () => {
@@ -62,6 +63,7 @@ export const AdminDashboard = () => {
   // Modals & Editing states
   const [editingItem, setEditingItem] = useState(null);
   const [modalType, setModalType] = useState(null); // 'skill' | 'project' | 'certificate' | 'education'
+  const [eduType, setEduType] = useState('college'); // 'college' | 'school'
 
   // Image Upload state inside modal
   const [selectedFile, setSelectedFile] = useState(null);
@@ -200,6 +202,15 @@ export const AdminDashboard = () => {
         setSkillCategoryOption(item?.category || standardSkillCategories[0]);
         setCustomCategoryInput('');
       }
+    }
+    if (type === 'education') {
+      const isSchool =
+        item?.educationType === 'school' ||
+        Boolean(item?.standard) ||
+        Boolean(item?.board) ||
+        Boolean(item?.percentage) ||
+        (item?.degree && /10th|12th|class 10|class 11|class 12|school|matric|cbse|state board|icse|sslc|hsc/i.test(item.degree));
+      setEduType(isSchool ? 'school' : 'college');
     }
   };
 
@@ -368,28 +379,57 @@ export const AdminDashboard = () => {
   const handleEduSubmit = async (e) => {
     e.preventDefault();
     const form = new FormData(e.target);
-    const eduData = {
-      degree: form.get('degree'),
-      institution: form.get('institution'),
-      department: form.get('department'),
-      year: form.get('year'),
-      achievements: form.get('achievements'),
+    const institution = form.get('institution')?.toString().trim() || '';
+    const achievements = form.get('achievements')?.toString().trim() || '';
+    const year = form.get('year')?.toString().trim() || '';
+
+    let eduData = {
+      educationType: eduType,
+      institution,
+      year,
+      achievements
     };
+
+    if (eduType === 'school') {
+      const board = form.get('board')?.toString().trim() || '';
+      const standard = form.get('standard')?.toString().trim() || '';
+      const percentage = form.get('percentage')?.toString().trim() || '';
+      eduData = {
+        ...eduData,
+        board,
+        standard,
+        percentage,
+        degree: standard ? `${standard} (${board || 'School'})` : (board || 'Schooling'),
+        department: board,
+        score: percentage
+      };
+    } else {
+      const degree = form.get('degree')?.toString().trim() || '';
+      const department = form.get('department')?.toString().trim() || '';
+      const cgpa = form.get('cgpa')?.toString().trim() || '';
+      eduData = {
+        ...eduData,
+        degree,
+        department,
+        cgpa,
+        score: cgpa
+      };
+    }
 
     setSaving(true);
     try {
       if (editingItem?.id) {
         await portfolioService.updateEducation(editingItem.id, eduData);
-        showToast('Education updated!');
+        showToast('Education record updated!');
       } else {
         await portfolioService.addEducation(eduData);
-        showToast('Education created!');
+        showToast('Education record created!');
       }
       setModalType(null);
       setEditingItem(null);
       loadData();
     } catch (err) {
-      showToast('Error saving education', 'error');
+      showToast('Error saving education record', 'error');
     } finally {
       setSaving(false);
     }
@@ -1192,33 +1232,83 @@ export const AdminDashboard = () => {
               </div>
 
               <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                {(data?.education || []).map((edu) => (
-                  <div key={edu.id} className="py-4 flex items-start justify-between gap-4">
-                    <div>
-                      <h4 className="font-bold text-sm text-slate-900 dark:text-white">{edu.degree}</h4>
-                      <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">{edu.institution} &bull; {edu.year}</p>
-                      {edu.achievements && (
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{edu.achievements}</p>
-                      )}
+                {(data?.education || []).map((edu) => {
+                  const isSchool =
+                    edu.educationType === 'school' ||
+                    Boolean(edu.standard) ||
+                    Boolean(edu.board) ||
+                    (edu.degree && /10th|12th|class 10|class 11|class 12|school|matric|cbse|state board|icse|sslc|hsc/i.test(edu.degree));
+
+                  const displayTitle = isSchool
+                    ? edu.standard
+                      ? `${edu.standard} (${edu.board || 'School'})`
+                      : edu.degree || 'School Education'
+                    : edu.degree;
+
+                  return (
+                    <div key={edu.id} className="py-4 flex items-start justify-between gap-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span
+                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10.5px] font-bold ${
+                              isSchool
+                                ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/60'
+                                : 'bg-brand-50 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300 border border-brand-200/60 dark:border-brand-800/60'
+                            }`}
+                          >
+                            {isSchool ? (
+                              <>
+                                <School className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                                <span>School</span>
+                              </>
+                            ) : (
+                              <>
+                                <GraduationCap className="w-3 h-3 text-brand-600 dark:text-brand-400" />
+                                <span>College / University</span>
+                              </>
+                            )}
+                          </span>
+
+                          {(edu.cgpa || edu.percentage || edu.score) && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10.5px] font-semibold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/50">
+                              {isSchool
+                                ? `Marks / %: ${edu.percentage || edu.score}`
+                                : `CGPA / GPA: ${edu.cgpa || edu.score}`}
+                            </span>
+                          )}
+                        </div>
+
+                        <h4 className="font-bold text-sm text-slate-900 dark:text-white">{displayTitle}</h4>
+                        <p className="text-xs text-slate-600 dark:text-slate-300">
+                          {edu.institution}
+                          {edu.department ? ` • ${edu.department}` : edu.board ? ` • ${edu.board}` : ''}
+                          {edu.year ? ` • ${edu.year}` : ''}
+                        </p>
+                        {edu.achievements && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 italic">
+                            Honors & Achievements: {edu.achievements}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => openModal('education', edu)}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+                          title="Edit"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteEdu(edu.id)}
+                          className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <button
-                        onClick={() => openModal('education', edu)}
-                        className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
-                        title="Edit"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteEdu(edu.id)}
-                        className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -1822,7 +1912,10 @@ export const AdminDashboard = () => {
             
             <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
               <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                {editingItem ? 'Edit' : 'Add New'} {modalType.charAt(0).toUpperCase() + modalType.slice(1)}
+                {editingItem ? 'Edit' : 'Add New'}{' '}
+                {modalType === 'education'
+                  ? (eduType === 'school' ? 'School Education' : 'College / University Education')
+                  : (modalType.charAt(0).toUpperCase() + modalType.slice(1))}
               </h3>
               <button
                 onClick={() => { setModalType(null); setEditingItem(null); setSelectedFile(null); }}
@@ -2164,61 +2257,235 @@ export const AdminDashboard = () => {
               {/* EDUCATION FORM */}
               {modalType === 'education' && (
                 <form onSubmit={handleEduSubmit} className="space-y-4">
+                  {/* Select Education Type Toggle */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Degree Title *</label>
-                    <input
-                      type="text"
-                      name="degree"
-                      required
-                      defaultValue={editingItem?.degree || ''}
-                      placeholder="e.g. B.S. in Computer Science"
-                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Institution *</label>
-                      <input
-                        type="text"
-                        name="institution"
-                        required
-                        defaultValue={editingItem?.institution || ''}
-                        placeholder="e.g. State University"
-                        className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Year / Duration *</label>
-                      <input
-                        type="text"
-                        name="year"
-                        required
-                        defaultValue={editingItem?.year || ''}
-                        placeholder="e.g. 2020 - 2024"
-                        className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                      />
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+                      Select Education Type
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setEduType('college')}
+                        className={`flex items-center justify-center gap-2.5 p-3 rounded-xl border-2 transition-all text-xs sm:text-sm font-bold ${
+                          eduType === 'college'
+                            ? 'border-brand-500 bg-brand-50/80 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 shadow-sm ring-2 ring-brand-500/20'
+                            : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-700 dark:text-slate-300'
+                        }`}
+                      >
+                        <GraduationCap className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+                        <span>College / University</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setEduType('school')}
+                        className={`flex items-center justify-center gap-2.5 p-3 rounded-xl border-2 transition-all text-xs sm:text-sm font-bold ${
+                          eduType === 'school'
+                            ? 'border-amber-500 bg-amber-50/80 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 shadow-sm ring-2 ring-amber-500/20'
+                            : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-700 dark:text-slate-300'
+                        }`}
+                      >
+                        <School className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                        <span>School</span>
+                      </button>
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Department</label>
-                    <input
-                      type="text"
-                      name="department"
-                      defaultValue={editingItem?.department || ''}
-                      placeholder="e.g. Department of Computer Science & Engineering"
-                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Academic Achievements</label>
-                    <textarea
-                      name="achievements"
-                      rows="2"
-                      defaultValue={editingItem?.achievements || ''}
-                      placeholder="e.g. Graduated with Honors, Capstone Lead..."
-                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    />
-                  </div>
+
+                  {/* Dynamic Fields: SCHOOL */}
+                  {eduType === 'school' ? (
+                    <div className="space-y-3.5 animate-fade-in">
+                      {/* 1. School Name */}
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                          1. School Name *
+                        </label>
+                        <input
+                          type="text"
+                          name="institution"
+                          required
+                          defaultValue={editingItem?.institution || ''}
+                          placeholder="e.g. St. Joseph's Higher Secondary School"
+                          className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {/* 2. Board (CBSE / STATE BOARD) */}
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            2. Board (CBSE / STATE BOARD / ICSE) *
+                          </label>
+                          <input
+                            type="text"
+                            name="board"
+                            required
+                            defaultValue={editingItem?.board || ''}
+                            placeholder="e.g. CBSE / State Board / ICSE"
+                            className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                          />
+                        </div>
+
+                        {/* 3. Class (10, 11, 12) */}
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            3. Class (10, 11, 12) *
+                          </label>
+                          <input
+                            type="text"
+                            name="standard"
+                            required
+                            defaultValue={editingItem?.standard || ''}
+                            placeholder="e.g. Class 10 (SSLC) or Class 12 (HSC)"
+                            className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {/* 4. Mark and Percentage */}
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            4. Mark and Percentage *
+                          </label>
+                          <input
+                            type="text"
+                            name="percentage"
+                            required
+                            defaultValue={editingItem?.percentage || editingItem?.score || ''}
+                            placeholder="e.g. 485 / 500 (97%) or 92.4%"
+                            className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                          />
+                        </div>
+
+                        {/* Year / Duration */}
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            Year / Duration *
+                          </label>
+                          <input
+                            type="text"
+                            name="year"
+                            required
+                            defaultValue={editingItem?.year || ''}
+                            placeholder="e.g. 2018 - 2020"
+                            className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                          />
+                        </div>
+                      </div>
+
+                      {/* 5. Academic Achievement */}
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                          5. Academic Achievement
+                        </label>
+                        <textarea
+                          name="achievements"
+                          rows="2"
+                          defaultValue={editingItem?.achievements || ''}
+                          placeholder="e.g. School Topper in Mathematics, Science Club Secretary, National Olympiad Finalist..."
+                          className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    /* Dynamic Fields: COLLEGE / UNIVERSITY */
+                    <div className="space-y-3.5 animate-fade-in">
+                      {/* 1. College or University Name */}
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                          1. College or University Name *
+                        </label>
+                        <input
+                          type="text"
+                          name="institution"
+                          required
+                          defaultValue={editingItem?.institution || ''}
+                          placeholder="e.g. Anna University / Oxford Institute of Technology"
+                          className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {/* 2. Degree (B.E, B.Sc, etc.) */}
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            2. Degree (B.E, B.Sc, B.Tech, etc.) *
+                          </label>
+                          <input
+                            type="text"
+                            name="degree"
+                            required
+                            defaultValue={editingItem?.degree || ''}
+                            placeholder="e.g. B.E, B.Tech, B.Sc, BCA, M.Tech"
+                            className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                          />
+                        </div>
+
+                        {/* 3. Course or Department */}
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            3. Course or Department (ECE, CSE, Civil, etc.) *
+                          </label>
+                          <input
+                            type="text"
+                            name="department"
+                            required
+                            defaultValue={editingItem?.department || ''}
+                            placeholder="e.g. Electronics & Communication (ECE), CSE, Civil"
+                            className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {/* 4. GPA and Current CGPA */}
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            4. GPA / Current CGPA *
+                          </label>
+                          <input
+                            type="text"
+                            name="cgpa"
+                            required
+                            defaultValue={editingItem?.cgpa || editingItem?.score || ''}
+                            placeholder="e.g. 8.85 / 10 CGPA or 3.9 / 4.0 GPA"
+                            className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                          />
+                        </div>
+
+                        {/* Year / Duration */}
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            Year / Duration *
+                          </label>
+                          <input
+                            type="text"
+                            name="year"
+                            required
+                            defaultValue={editingItem?.year || ''}
+                            placeholder="e.g. 2020 - 2024"
+                            className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                          />
+                        </div>
+                      </div>
+
+                      {/* 5. Academic Achievement */}
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                          5. Academic Achievement
+                        </label>
+                        <textarea
+                          name="achievements"
+                          rows="2"
+                          defaultValue={editingItem?.achievements || ''}
+                          placeholder="e.g. Department Rank 1, Published IEEE Research Paper, Hackathon Winner, Lead Developer for Capstone..."
+                          className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Modal Action Buttons */}
                   <div className="flex justify-end gap-2 pt-4">
                     <button
                       type="button"
@@ -2230,9 +2497,9 @@ export const AdminDashboard = () => {
                     <button
                       type="submit"
                       disabled={saving}
-                      className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-slate-900 hover:bg-brand-600 dark:bg-brand-500 dark:hover:bg-brand-600"
+                      className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-slate-900 hover:bg-brand-600 dark:bg-brand-500 dark:hover:bg-brand-600 shadow-sm"
                     >
-                      {saving ? 'Saving...' : 'Save Education'}
+                      {saving ? 'Saving...' : eduType === 'school' ? 'Save School Record' : 'Save College Record'}
                     </button>
                   </div>
                 </form>

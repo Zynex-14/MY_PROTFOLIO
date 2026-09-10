@@ -92,13 +92,20 @@ const CertificateSchema = new mongoose.Schema({
 
 const EducationSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },
-  degree: { type: String, required: true },
+  educationType: { type: String, default: 'college' }, // 'college' | 'school'
   institution: { type: String, required: true },
+  degree: { type: String, default: '' },
+  department: { type: String, default: '' },
+  year: { type: String, default: '' },
   duration: { type: String, default: '' },
-  location: { type: String, default: '' },
+  cgpa: { type: String, default: '' },
+  board: { type: String, default: '' },
+  standard: { type: String, default: '' },
+  percentage: { type: String, default: '' },
   score: { type: String, default: '' },
+  achievements: { type: String, default: '' },
   description: { type: String, default: '' }
-}, { timestamps: true });
+}, { timestamps: true, strict: false });
 
 const MessageSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },

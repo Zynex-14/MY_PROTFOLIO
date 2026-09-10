@@ -1,5 +1,5 @@
 import React from 'react';
-import { GraduationCap, Target, User, Calendar, Award } from 'lucide-react';
+import { GraduationCap, Target, User, Calendar, Award, School } from 'lucide-react';
 
 export const AboutSection = ({ profile, education }) => {
   return (
@@ -69,38 +69,84 @@ export const AboutSection = ({ profile, education }) => {
               </div>
 
               <div className="space-y-8 relative before:absolute before:inset-0 before:left-3.5 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-800">
-                {(education || []).map((edu, idx) => (
-                  <div key={edu.id || idx} className="relative pl-9 group">
-                    {/* Timeline bullet */}
-                    <div className="absolute left-2 top-1.5 w-3.5 h-3.5 rounded-full bg-brand-500 border-4 border-white dark:border-slate-900 shadow-sm group-hover:scale-125 transition-transform" />
-                    
-                    <div className="flex items-center gap-2 text-xs font-semibold text-brand-600 dark:text-brand-400 mb-1">
-                      <Calendar className="w-3.5 h-3.5" />
-                      <span>{edu.year}</span>
-                    </div>
+                {(education || []).map((edu, idx) => {
+                  const isSchool =
+                    edu.educationType === 'school' ||
+                    Boolean(edu.standard) ||
+                    Boolean(edu.board) ||
+                    (edu.degree && /10th|12th|class 10|class 11|class 12|school|matric|cbse|state board|icse|sslc|hsc/i.test(edu.degree));
 
-                    <h5 className="text-base font-bold text-slate-900 dark:text-white">
-                      {edu.degree}
-                    </h5>
-                    
-                    <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                      {edu.institution}
-                    </p>
-                    
-                    {edu.department && (
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        {edu.department}
-                      </p>
-                    )}
+                  const displayTitle = isSchool
+                    ? edu.standard
+                      ? `${edu.standard} (${edu.board || 'School'})`
+                      : edu.degree || 'School Education'
+                    : edu.degree;
 
-                    {edu.achievements && (
-                      <div className="mt-2.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-xs text-slate-600 dark:text-slate-300 leading-relaxed flex items-start gap-2">
-                        <Award className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                        <span>{edu.achievements}</span>
+                  const scoreText = isSchool
+                    ? (edu.percentage || edu.score)
+                    : (edu.cgpa || edu.score);
+
+                  return (
+                    <div key={edu.id || idx} className="relative pl-9 group">
+                      {/* Timeline bullet */}
+                      <div
+                        className={`absolute left-2 top-1.5 w-3.5 h-3.5 rounded-full border-4 border-white dark:border-slate-900 shadow-sm group-hover:scale-125 transition-transform ${
+                          isSchool ? 'bg-amber-500' : 'bg-brand-500'
+                        }`}
+                      />
+                      
+                      <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
+                        <div className="flex items-center gap-2 text-xs font-semibold text-brand-600 dark:text-brand-400">
+                          <Calendar className="w-3.5 h-3.5" />
+                          <span>{edu.year}</span>
+                        </div>
+
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${
+                            isSchool
+                              ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300'
+                              : 'bg-brand-50 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300'
+                          }`}
+                        >
+                          {isSchool ? (
+                            <School className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                          ) : (
+                            <GraduationCap className="w-3 h-3 text-brand-600 dark:text-brand-400" />
+                          )}
+                          <span>{isSchool ? 'School' : 'College / University'}</span>
+                        </span>
                       </div>
-                    )}
-                  </div>
-                ))}
+
+                      <h5 className="text-base font-bold text-slate-900 dark:text-white">
+                        {displayTitle}
+                      </h5>
+                      
+                      <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                        {edu.institution}
+                      </p>
+                      
+                      {(edu.department || edu.board) && (
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                          {edu.department || edu.board}
+                        </p>
+                      )}
+
+                      {scoreText && (
+                        <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/50">
+                          <span>{isSchool ? 'Marks / %:' : 'CGPA / GPA:'}</span>
+                          <span className="font-bold">{scoreText}</span>
+                        </div>
+                      )}
+
+                      {edu.achievements && (
+                        <div className="mt-2.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-xs text-slate-600 dark:text-slate-300 leading-relaxed flex items-start gap-2">
+                          <Award className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                          <span>{edu.achievements}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
