@@ -457,7 +457,7 @@ if (!process.env.VERCEL) {
   app.use(express.static(distPath));
 
   // Catch-all route for Single Page Application (SPA) routing
-  app.get('*', (req, res, next) => {
+  app.get('{*splat}', (req, res, next) => {
     if (req.path.startsWith('/api')) {
       return next();
     }
