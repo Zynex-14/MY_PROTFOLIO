@@ -93,7 +93,7 @@ export const AdminDashboard = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const res = await portfolioService.getAllData();
+      const res = await portfolioService.getAllData({ fresh: true });
       setData(res);
       if (res.profile?.email) {
         setNewAdminEmail(res.profile.email);
@@ -467,14 +467,16 @@ export const AdminDashboard = () => {
     }
   };
 
-  // Seed data to MongoDB Atlas
+  // Synchronize entire portfolio data directly to MongoDB Atlas
   const handleSeedMongo = async () => {
     setSeedingMongo(true);
     try {
-      await portfolioService.seedMongoAtlas();
-      showToast('All portfolio data seeded to MongoDB Atlas successfully!');
+      showToast('Syncing portfolio to MongoDB Atlas...', 'info');
+      await portfolioService.syncMongoAtlas(data);
+      showToast('All portfolio data synchronized to MongoDB Atlas! Public visitors will now see your updated content.');
+      await handleTestMongo();
     } catch (err) {
-      showToast(err.message || 'Seeding to MongoDB Atlas failed', 'error');
+      showToast(err.message || 'Syncing to MongoDB Atlas failed', 'error');
     } finally {
       setSeedingMongo(false);
     }

@@ -13,27 +13,27 @@ export const standardSkillCategories = [
 
 export const initialPortfolioData = {
   profile: {
-    name: "Alex Morgan",
+    name: "Mohammed Zaid M",
     designation: "Full Stack Software Engineer & Cloud Developer",
     tagline: "I build modern, scalable, and resilient web applications.",
     typingPhrases: [
       "Full Stack Developer",
       "Cloud Architect",
-      "Java & TypeScript Specialist",
+      "React & Node.js Specialist",
       "System Designer"
     ],
     avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=600",
     resumeUrl: "",
     bio: "Dedicated software engineer with a strong foundation in modern web technologies, scalable backend architectures, and cloud services. I thrive on translating complex requirements into clean, performant, and elegant digital products. With hands-on experience spanning frontend frameworks, microservices, and automated deployment pipelines, I continuously push for code quality and architectural clarity.",
     careerGoals: "My objective is to build high-impact, distributed software systems that scale effortlessly. I am passionate about cloud-native technologies, developer tooling, and modern full-stack frameworks, seeking opportunities to collaborate with ambitious engineering teams.",
-    email: "alex.morgan.dev@gmail.com",
-    contactRecipientEmail: "alex.morgan.dev@gmail.com",
-    github: "https://github.com",
+    email: "shadowfighterzaid143@gmail.com",
+    contactRecipientEmail: "shadowfighterzaid143@gmail.com",
+    github: "https://github.com/Zynex-14",
     linkedin: "https://linkedin.com",
     twitter: "https://twitter.com",
     instagram: "https://instagram.com",
-    whatsapp: "+1 (555) 234-5678",
-    location: "San Francisco, CA",
+    whatsapp: "+91 98765 43210",
+    location: "India",
     statusBadge: "Available for Hire"
   },
 

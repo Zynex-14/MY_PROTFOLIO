@@ -32,6 +32,8 @@ export const CertificatesSection = ({ certificates }) => {
                 <img
                   src={cert.imageUrl || 'https://images.unsplash.com/photo-1496171367470-9ed9a91ea931?auto=format&fit=crop&q=80&w=600'}
                   alt={cert.title}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                   onError={(e) => {
                     e.target.src = 'https://images.unsplash.com/photo-1496171367470-9ed9a91ea931?auto=format&fit=crop&q=80&w=600';

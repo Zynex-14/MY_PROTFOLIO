@@ -166,9 +166,17 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// 2. Fetch all portfolio data
-app.get('/api/portfolio', async (req, res) => {
+// 2. Fetch all portfolio data (with Vercel Edge CDN Caching for sub-second speeds)
+app.get(['/api/portfolio', '/portfolio'], async (req, res) => {
   try {
+    // If request asks for fresh data (Admin or after update), bypass CDN cache
+    if (req.query.fresh === '1' || req.query.admin === '1') {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    } else {
+      // Edge CDN caches for 30s, background revalidates for 300s (sub-50ms responses for visitors!)
+      res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=300');
+    }
+
     let profile = await Profile.findOne().lean();
     if (!profile) {
       profile = await Profile.create(initialPortfolioData.profile);
@@ -196,18 +204,22 @@ app.get('/api/portfolio', async (req, res) => {
   }
 });
 
-// 3. Update Profile
-app.post('/api/portfolio/profile', async (req, res) => {
+// 3. Update Profile (Supports both POST & PUT)
+const handleProfileUpdate = async (req, res) => {
   try {
     const updated = await Profile.findOneAndUpdate({}, req.body, {
       new: true,
-      upsert: true
+      upsert: true,
+      setDefaultsOnInsert: true
     });
+    res.setHeader('Cache-Control', 'no-store');
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+};
+app.post(['/api/portfolio/profile', '/portfolio/profile'], handleProfileUpdate);
+app.put(['/api/portfolio/profile', '/portfolio/profile'], handleProfileUpdate);
 
 // 4. Skills CRUD
 app.post('/api/portfolio/skills', async (req, res) => {
@@ -362,44 +374,66 @@ app.delete('/api/portfolio/messages/:id', async (req, res) => {
   }
 });
 
-// 9. Manual Seed Endpoint
-app.post('/api/portfolio/seed', async (req, res) => {
+// 9. Portfolio Sync & Seed Endpoint (Full cloud database synchronization)
+const handlePortfolioSync = async (req, res) => {
   try {
     const data = req.body && Object.keys(req.body).length > 0 ? req.body : initialPortfolioData;
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
 
+    let updatedProfile = null;
     if (data.profile) {
-      await Profile.findOneAndUpdate({}, data.profile, { upsert: true });
+      updatedProfile = await Profile.findOneAndUpdate({}, data.profile, { 
+        upsert: true,
+        new: true,
+        setDefaultsOnInsert: true 
+      });
     }
 
     if (Array.isArray(data.skills) && data.skills.length > 0) {
       for (const s of data.skills) {
-        await Skill.findOneAndUpdate({ id: s.id }, s, { upsert: true });
+        if (s.id) {
+          await Skill.findOneAndUpdate({ id: s.id }, s, { upsert: true });
+        }
       }
     }
 
     if (Array.isArray(data.projects) && data.projects.length > 0) {
       for (const p of data.projects) {
-        await Project.findOneAndUpdate({ id: p.id }, p, { upsert: true });
+        if (p.id) {
+          await Project.findOneAndUpdate({ id: p.id }, p, { upsert: true });
+        }
       }
     }
 
     if (Array.isArray(data.certificates) && data.certificates.length > 0) {
       for (const c of data.certificates) {
-        await Certificate.findOneAndUpdate({ id: c.id }, c, { upsert: true });
+        if (c.id) {
+          await Certificate.findOneAndUpdate({ id: c.id }, c, { upsert: true });
+        }
       }
     }
 
     if (Array.isArray(data.education) && data.education.length > 0) {
       for (const e of data.education) {
-        await Education.findOneAndUpdate({ id: e.id }, e, { upsert: true });
+        if (e.id) {
+          await Education.findOneAndUpdate({ id: e.id }, e, { upsert: true });
+        }
       }
     }
 
-    res.json({ success: true, message: 'Portfolio seeded to MongoDB Atlas successfully!' });
+    res.json({ 
+      success: true, 
+      message: 'Portfolio synced to MongoDB Atlas successfully!',
+      profile: updatedProfile 
+    });
   } catch (err) {
+    console.error('Error syncing portfolio to MongoDB Atlas:', err);
     res.status(500).json({ error: err.message });
   }
-});
+};
+
+app.post(['/api/portfolio/sync', '/portfolio/sync'], handlePortfolioSync);
+app.post(['/api/portfolio/seed', '/portfolio/seed'], handlePortfolioSync);
 
 // Direct API root endpoint
 app.get(['/api', '/api/'], (req, res) => {

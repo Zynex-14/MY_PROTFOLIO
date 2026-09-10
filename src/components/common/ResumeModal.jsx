@@ -1,6 +1,4 @@
 import React, { useRef, useState } from 'react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import {
   Download,
   Printer,
@@ -40,6 +38,10 @@ export const ResumeModal = ({ isOpen, onClose, data }) => {
     setDownloading(true);
 
     try {
+      const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+        import('jspdf'),
+        import('html2canvas')
+      ]);
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = 210; // A4 width in mm
       const pdfHeight = 297; // A4 height in mm

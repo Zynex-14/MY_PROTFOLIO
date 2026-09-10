@@ -38,15 +38,48 @@ export const PublicPortfolio = () => {
     return () => window.removeEventListener('portfolio-data-updated', handleUpdate);
   }, []);
 
-  if (loading) {
+  if (loading && !data) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-950">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-            Loading portfolio...
-          </p>
-        </div>
+      <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 animate-pulse">
+        {/* Skeleton Navbar */}
+        <header className="fixed top-0 left-0 right-0 h-16 border-b border-slate-100 dark:border-slate-800/80 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md z-50">
+          <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
+            <div className="h-6 w-36 bg-slate-200 dark:bg-slate-800 rounded-md"></div>
+            <div className="hidden md:flex gap-6">
+              <div className="h-4 w-16 bg-slate-200 dark:bg-slate-800 rounded"></div>
+              <div className="h-4 w-16 bg-slate-200 dark:bg-slate-800 rounded"></div>
+              <div className="h-4 w-16 bg-slate-200 dark:bg-slate-800 rounded"></div>
+              <div className="h-4 w-16 bg-slate-200 dark:bg-slate-800 rounded"></div>
+            </div>
+          </div>
+        </header>
+
+        {/* Skeleton Hero Section */}
+        <section className="pt-32 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col-reverse lg:flex-row items-center justify-between gap-12">
+            <div className="flex-1 space-y-4 w-full">
+              <div className="h-6 w-44 bg-emerald-100 dark:bg-emerald-950/40 rounded-full"></div>
+              <div className="h-10 w-3/4 bg-slate-200 dark:bg-slate-800 rounded-lg"></div>
+              <div className="h-6 w-1/2 bg-brand-100 dark:bg-brand-950/40 rounded-lg"></div>
+              <div className="h-20 w-full bg-slate-100 dark:bg-slate-900 rounded-xl"></div>
+              <div className="flex gap-4 pt-2">
+                <div className="h-11 w-36 bg-brand-500/20 rounded-xl"></div>
+                <div className="h-11 w-36 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
+              </div>
+            </div>
+            <div className="w-64 h-64 sm:w-72 sm:h-72 lg:w-80 lg:h-80 rounded-2xl bg-slate-200 dark:bg-slate-800"></div>
+          </div>
+        </section>
+
+        {/* Skeleton Project Cards */}
+        <section className="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="h-8 w-48 bg-slate-200 dark:bg-slate-800 rounded-md mb-8"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-80 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60"></div>
+            ))}
+          </div>
+        </section>
       </div>
     );
   }
